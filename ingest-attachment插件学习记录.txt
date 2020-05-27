@@ -1,0 +1,21 @@
+1.安装ingest-attachment插件（ES对文件进行索引需要的插件）
+bin/elasticsearch-plugin install ingest-attachment
+
+2.必须为集群内的所有节点安装，并重启集群才能生效
+
+3.创建管道 PUT host/_ingest/pipeline/attachment //创建名为attachment的管道
+{
+ "description" : "Extract attachment information",
+ "processors":[
+	 {
+		"attachment":{
+			"field":"data",
+			"indexed_chars" : -1,//不限制文档大小
+			"ignore_missing":true
+		}
+	 },
+	 {
+		 "remove":{"field":"data"}//不设置的话会保存原始base64编码
+	 }
+ ]
+}

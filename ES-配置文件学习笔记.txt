@@ -43,3 +43,53 @@ path.logs: /home/es/software/es/logs
 
 7.初始化从节点时，必须保证从节点实例目录下不要有data目录（除非是之前集群时自动创建的，再次重启时不需要删除），否则不会集群。
 
+8.设置密码
+修改elasticsearch.yml
+xpack.security.enabled: true
+#这个只需要在主节点设置
+xpack.license.self_generated.type: basic
+xpack.security.transport.ssl.enabled: true
+启动elasticsearch
+命令行执行：
+bin/elasticsearch-setup-passwords interactive
+初始化密码
+elastic：admin123
+apm_system:apmadmin123
+kibana:kibana123
+logstash_system:logstash123
+beats_system:beats123
+remote_monitor_user:remote123
+
+9.修改密码
+curl -H "Content-Type:application/json" 
+-XPOST -u elastic 'http://127.0.0.1:9200/_xpack/security/user/elastic/_password' 
+-d '{ "password" : "123456" }'
+
+10.生成证书
+在master节点设置了密码后，集群内的其它节点会无法连接到master,需要在master节点执行
+bin/elasticsearch-certutil ca
+在根目录生成一个CA证书elastic-stack-ca.p12
+然后为证书配置权限
+bin/elasticsearch-certutil cert --ca elastic-stack-ca.p12
+最后把配置好权限的证书拷贝到各个节点（包含主节点）的config目录下
+
+11.配置证书（所有节点）
+xpack.security.enabled: true
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.verification_mode: certificate
+xpack.security.transport.ssl.keystore.path: elastic-certificates.p12
+xpack.security.transport.ssl.truststore.path: elastic-certificates.p12
+
+重新启动即可形成验证集群
+
+12.索引mapping支持新增属性，但内部索引的其它文档不会自动更新，需要手动更新其它文档。
+索引的mapping不支持修改，比如修改字段类型，修改字段是否存储，修改字段分词器等，都是不允许的。
+但为解决修改的目的可以把要修改的字段类型改为multi_field（只有这个修改能被允许），之后可以在这个字段内部完成
+新增修改等操作。
+
+13.脑裂及其防治方式
+假如现在有一个10节点的ES集群，其中有3个节点掉线了（与主节点失去联系），但是这3个节点还能互联，如果配置有重新选举策略，
+这3个节点就会再次选举出1个主节点，当网络恢复后，1个集群变成了2个同名集群，这个过程称为脑裂。为了防止脑裂发生，ES配置中
+有一个配置项discovery.zen.minimum_master_nodes,用于设置集群所需最小节点数目，可以将其设置为最大节点数的一半+1，此例子中
+是10/2+1=6，也就是说当集群内节点数目小于6时，不自动发生集群。
+

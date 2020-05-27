@@ -133,7 +133,7 @@ $ curl 'localhost:9200/Index/Type/_search'  -d '
 
 https://elasticsearch.thans.cn/downloads/elasticsearch/elasticsearch-7.3.1-windows-x86_64.zip
 https://artifacts.elastic.co/downloads/kibana/kibana-7.7.0-windows-x86_64.zip
-
+elasticsearch-7.7.0-windows-x86_64.zip
 
 
 "No handler for type [string] declared on field [description]"
